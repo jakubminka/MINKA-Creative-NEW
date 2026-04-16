@@ -1,0 +1,90 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: projects
+// Fields:
+//   - title: string (required)
+//   - category: string (required, Photography|Video)
+//   - subcategory: string (Commercial|Architecture|Events|Sports)
+//   - image: string (required, URL)
+//   - videoUrl: string (URL)
+//   - description: string
+//   - client: string
+//   - order: number
+//   - featured: boolean
+//   - createdAt: timestamp
+//
+// Collection: users
+// Fields:
+//   - email: string (required)
+//   - role: string (admin)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "JakubMinka@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidProject(data) {
+      return data.title is string && data.title.size() < 200 &&
+             data.category in ['Photography', 'Video'] &&
+             data.image is string && data.image.matches("^https?://.*") &&
+             (!('subcategory' in data) || data.subcategory in ['Commercial', 'Architecture', 'Events', 'Sports']) &&
+             (!('videoUrl' in data) || (data.videoUrl is string && data.videoUrl.matches("^https?://.*"))) &&
+             (!('description' in data) || (data.description is string && data.description.size() < 5000)) &&
+             (!('client' in data) || (data.client is string && data.client.size() < 100)) &&
+             (!('order' in data) || data.order is number) &&
+             (!('featured' in data) || data.featured is bool);
+    }
+
+    function isValidBlogPost(data) {
+      return data.title is string && data.title.size() < 200 &&
+             data.content is string && data.content.size() < 50000 &&
+             data.image is string && data.image.matches("^https?://.*") &&
+             (!('excerpt' in data) || (data.excerpt is string && data.excerpt.size() < 1000)) &&
+             (!('author' in data) || (data.author is string && data.author.size() < 100));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /blog/{postId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if true; // Public portfolio
+      allow create, update, delete: if isAdmin() && isValidProject(request.resource.data);
+    }
+
+    match /users/{userId} {
+      allow read, write: if isAdmin();
+      // Allow self-registration only for the bootstrap email
+      allow create: if isAuthenticated() && request.auth.uid == userId && 
+                    request.auth.token.email == "JakubMinka@gmail.com" &&
+                    request.resource.data.role == "admin";
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

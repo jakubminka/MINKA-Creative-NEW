@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "projects": {
+      "title": "Portfolio Project",
+      "description": "A creative project featuring photography or video content.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Project title" },
+        "category": { "type": "string", "enum": ["Photography", "Video"], "description": "Creative category" },
+        "subcategory": { "type": "string", "enum": ["Commercial", "Architecture", "Events", "Sports"], "description": "Specific niche for SEO" },
+        "image": { "type": "string", "format": "url", "description": "Main project image/thumbnail URL" },
+        "videoUrl": { "type": "string", "format": "url", "description": "Embedded video URL (YouTube/Vimeo)" },
+        "description": { "type": "string", "description": "Detailed project description" },
+        "client": { "type": "string", "description": "Client name or brand logo reference" },
+        "order": { "type": "number", "description": "Display order" },
+        "featured": { "type": "boolean", "description": "Is shown on hero or top showcase" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "image"]
+    },
+    "users": {
+      "title": "Admin User",
+      "description": "User with access to the backend",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin"] }
+      },
+      "required": ["email", "role"]
+    },
+    "blog": {
+      "title": "Blog Post",
+      "description": "Article for the website blog section.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Post title" },
+        "excerpt": { "type": "string", "description": "Short summary" },
+        "content": { "type": "string", "description": "Main article content" },
+        "image": { "type": "string", "format": "url", "description": "Banner image URL" },
+        "date": { "type": "string", "format": "date-time" },
+        "author": { "type": "string" }
+      },
+      "required": ["title", "content", "image", "date"]
+    }
+  },
+  "firestore": {
+    "projects": {
+      "schema": "projects",
+      "description": "Public portfolio projects"
+    },
+    "users": {
+      "schema": "users",
+      "description": "Admin user profiles"
+    },
+    "blog": {
+      "schema": "blog",
+      "description": "Public blog articles"
+    }
+  }
+}
