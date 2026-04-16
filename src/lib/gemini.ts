@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY as string 
+  apiKey: import.meta.env.VITE_GEMINI_API_KEY as string 
 });
 
 export const analyzeStyle = async (title: string, description: string) => {
