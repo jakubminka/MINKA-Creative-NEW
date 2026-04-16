@@ -317,7 +317,7 @@ export default function App() {
         })) as Service[];
         setServices(items);
       }, (error) => {
-        console.error("Error loading services:", error);
+        handleFirestoreError(error, OperationType.LIST, "services");
       });
       return () => unsubscribe();
     }
