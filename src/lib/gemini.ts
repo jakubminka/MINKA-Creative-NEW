@@ -1,18 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
 
-const rawKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-// Zabrání pádu pokud je klíč prázdný nebo řetězec "undefined"
-const isValidKey = rawKey && 
-                   rawKey !== "undefined" && 
-                   rawKey.trim().length > 0;
-
-const genAI = isValidKey ? new GoogleGenAI(rawKey as string) : null;
-
 export const analyzeStyle = async (title: string, description: string) => {
-  if (!genAI) return "AI analýza není nakonfigurována (chybí API klíč).";
+  const rawKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+  // Kontrola klíče až při volání funkce
+  const isValidKey = rawKey && 
+                     rawKey !== "undefined" && 
+                     rawKey.trim().length > 0;
+
+  if (!isValidKey) {
+    return "AI analýza není nakonfigurována (chybí API klíč v .env).";
+  }
 
   try {
+    const genAI = new GoogleGenAI(rawKey as string);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const result = await model.generateContent([
