@@ -51,7 +51,7 @@ const getIcon = (name: string) => {
   }
 };
 
-const [services, setServices] = useState<Service[]>([
+const defaultServices: Service[] = [
   {
     id: "destination",
     icon: "Sparkles",
@@ -319,15 +319,18 @@ export default function App() {
   };
 
   const handleAddProject = async () => {
-    if (!newProject.title || !newProject.image) return;
+    if (!newProject.title || !newProject.image) {
+      alert("Vyplňte prosím název a nahrajte obrázek před uložením projektu.");
+      return;
+    }
     try {
       await addDoc(collection(db, "projects"), {
         ...newProject,
         createdAt: serverTimestamp()
       });
-      setNewProject({ category: "Photography", subcategory: "Commercial" });
-    } catch (e) { 
-      handleFirestoreError(e, OperationType.CREATE, "projects"); 
+      setNewProject({ category: "Fotografie", subcategory: "Komerční" });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, "projects");
     }
   };
 
@@ -352,13 +355,15 @@ export default function App() {
 
     setIsUploading(true);
     try {
-      const storageRef = ref(storage, `portfolio/${Date.now()}_${file.name}`);
+      const sanitizedFileName = file.name.replace(/\s+/g, "_");
+      const storageRef = ref(storage, `portfolio/${Date.now()}_${sanitizedFileName}`);
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
       setNewProject({ ...newProject, image: downloadURL });
-    } catch (e) {
-      console.error("Upload error:", e);
-      alert("Chyba při nahrávání souboru.");
+      alert("Obrázek byl nahrán. Nyní můžete projekt uložit.");
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert(`Chyba při nahrávání souboru: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsUploading(false);
     }
