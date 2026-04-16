@@ -1,8 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenAI(import.meta.env.VITE_GEMINI_API_KEY as string);
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = apiKey ? new GoogleGenAI(apiKey as string) : null;
 
 export const analyzeStyle = async (title: string, description: string) => {
+  if (!genAI) return "AI analýza není nakonfigurována (chybí API klíč).";
+
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     

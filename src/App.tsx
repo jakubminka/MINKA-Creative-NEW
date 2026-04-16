@@ -265,58 +265,66 @@ export default function App() {
   const heroRef = useRef(null);
   
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = auth ? onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAdmin(currentUser?.email === "JakubMinka@gmail.com");
-    });
+    }) : () => {}; // Return no-op if auth is undefined
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "projects"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as PortfolioItem[];
-      setPortfolioItems(items);
-      setIsLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "projects");
-    });
-    return () => unsubscribe();
+    if (db) { // Check if db is initialized
+      const q = query(collection(db, "projects"), orderBy("createdAt", "desc"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as PortfolioItem[];
+        setPortfolioItems(items);
+        setIsLoading(false);
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, "projects");
+      });
+      return () => unsubscribe();
+    } else {
+      setIsLoading(false); // No database to load from, so mark as loaded
+    }
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "services"), orderBy("order", "asc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) {
-        // If no services in Firestore, keep the default ones
-        return;
-      }
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Service[];
-      setServices(items);
-    }, (error) => {
-      console.error("Error loading services:", error);
-    });
-    return () => unsubscribe();
+    if (db) { // Check if db is initialized
+      const q = query(collection(db, "services"), orderBy("order", "asc"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+          // If no services in Firestore, keep the default ones
+          return;
+        }
+        const items = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Service[];
+        setServices(items);
+      }, (error) => {
+        console.error("Error loading services:", error);
+      });
+      return () => unsubscribe();
+    }
   }, []);
 
   useEffect(() => {
-    const qPosts = query(collection(db, "blog"), orderBy("date", "desc"));
-    const unsubscribePosts = onSnapshot(qPosts, (snapshot) => {
-      const posts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as BlogPost[];
-      setBlogPosts(posts);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "blog");
-    });
-    return () => unsubscribePosts();
+    if (db) { // Check if db is initialized
+      const qPosts = query(collection(db, "blog"), orderBy("date", "desc"));
+      const unsubscribePosts = onSnapshot(qPosts, (snapshot) => {
+        const posts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as BlogPost[];
+        setBlogPosts(posts);
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, "blog");
+      });
+      return () => unsubscribePosts();
+    }
   }, []);
 
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -342,6 +350,7 @@ export default function App() {
   };
 
   const handleLogin = async () => {
+    if (!auth) { console.error("Firebase Auth not initialized."); return; }
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (e) { console.error(e); }
@@ -352,6 +361,7 @@ export default function App() {
       alert("Vyplňte prosím název a nahrajte obrázek před uložením projektu.");
       return;
     }
+    if (!db) { console.error("Firestore not initialized."); return; }
     try {
       await addDoc(collection(db, "projects"), {
         ...newProject,
@@ -365,6 +375,7 @@ export default function App() {
 
   const handleAddPost = async () => {
     if (!newPost.title || !newPost.content) return;
+    if (!db) { console.error("Firestore not initialized."); return; }
     try {
       await addDoc(collection(db, "blog"), {
         ...newPost,
@@ -397,6 +408,7 @@ export default function App() {
 
   const handleDeleteProject = async (id: string) => {
     if (!confirm("Are you sure?")) return;
+    if (!db) { console.error("Firestore not initialized."); return; }
     try {
       await deleteDoc(doc(db, "projects", id));
     } catch (e) {
@@ -411,6 +423,7 @@ export default function App() {
       return;
     }
 
+    if (!db) { console.error("Firestore not initialized."); return; }
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, "contacts"), {
