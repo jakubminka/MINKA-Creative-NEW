@@ -29,10 +29,32 @@ interface BlogPost {
   author: string;
 }
 
-const services = [
+interface Service {
+  id: string;
+  icon: string;
+  title: string;
+  bgImage: string;
+  shortSub: string;
+  description: string;
+  longDescription: string;
+  gallery: string[];
+  video: string;
+}
+
+const getIcon = (name: string) => {
+  switch (name) {
+    case "Sparkles": return <Sparkles className="w-6 h-6" />;
+    case "Camera": return <Camera className="w-6 h-6" />;
+    case "LayoutDashboard": return <LayoutDashboard className="w-6 h-6" />;
+    case "Calendar": return <Calendar className="w-6 h-6" />;
+    default: return <Sparkles className="w-6 h-6" />;
+  }
+};
+
+const [services, setServices] = useState<Service[]>([
   {
     id: "destination",
-    icon: <Sparkles className="w-6 h-6" />,
+    icon: "Sparkles",
     title: "Destinační Produkce",
     bgImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1200",
     shortSub: "Světoznámé lokace, cestování",
@@ -43,7 +65,7 @@ const services = [
   },
   {
     id: "commercial",
-    icon: <Camera className="w-6 h-6" />,
+    icon: "Camera",
     title: "Komerční Produkce",
     bgImage: "https://picsum.photos/seed/comm_bg/1200/800",
     shortSub: "Firemní videa, reklamy, produkty",
@@ -54,7 +76,7 @@ const services = [
   },
   {
     id: "architecture",
-    icon: <LayoutDashboard className="w-6 h-6" />,
+    icon: "LayoutDashboard",
     title: "Architektura & Reality",
     bgImage: "https://picsum.photos/seed/arch_bg/1200/800",
     shortSub: "Hotely, restaurace, rezidence",
@@ -65,7 +87,7 @@ const services = [
   },
   {
     id: "events",
-    icon: <Calendar className="w-6 h-6" />,
+    icon: "Calendar",
     title: "Eventy & Reportáž",
     bgImage: "https://picsum.photos/seed/event_bg/1200/800",
     shortSub: "Festivaly, konference, koncerty",
@@ -197,16 +219,17 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"studio" | "blog" | "portfolio" | "info">("studio");
   const [activeCategory, setActiveCategory] = useState<"Vše" | "Fotografie" | "Video">("Vše");
   const [activeSubcategory, setActiveSubcategory] = useState<string>("Vše");
-  const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: "image" | "video" } | null>(null);
   
   // Auth & Admin State
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [adminTab, setAdminTab] = useState<"projects" | "blog">("projects");
+  const [adminTab, setAdminTab] = useState<"projects" | "blog" | "services">("projects");
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [services, setServices] = useState<Service[]>(defaultServices);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -228,7 +251,6 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAdmin(currentUser?.email === "JakubMinka@gmail.com" || !!currentUser); // Temporarily allow any logged-in user as admin
-      console.log("Auth state:", currentUser?.email, "isAdmin:", currentUser?.email === "JakubMinka@gmail.com" || !!currentUser);
     });
     return () => unsubscribe();
   }, []);
@@ -244,6 +266,24 @@ export default function App() {
       setIsLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, "projects");
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, "services"), orderBy("order", "asc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        // If no services in Firestore, keep the default ones
+        return;
+      }
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Service[];
+      setServices(items);
+    }, (error) => {
+      console.error("Error loading services:", error);
     });
     return () => unsubscribe();
   }, []);
@@ -583,7 +623,7 @@ export default function App() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80" />
                   <div className="relative h-full flex flex-col justify-end p-10 z-10">
                     <div className="text-brand-accent mb-6 group-hover:scale-110 transition-transform origin-left">
-                      {service.icon}
+                      {getIcon(service.icon)}
                     </div>
                     <div className="text-[10px] text-brand-accent uppercase font-bold tracking-[0.2em] mb-4 opacity-70">
                       {service.shortSub}
@@ -875,7 +915,7 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-2">
                 <div className="p-12 md:p-20 flex flex-col justify-center">
                   <div className="text-brand-accent mb-8 w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-brand-accent/20">
-                    {selectedService.icon}
+                    {getIcon(selectedService.icon)}
                   </div>
                   <h2 className="text-5xl md:text-7xl font-black mb-8 uppercase tracking-tighter leading-none">{selectedService.title}</h2>
                   <p className="text-xl text-gray-400 font-light leading-relaxed mb-12">
@@ -1049,7 +1089,7 @@ export default function App() {
              {!user ? (
                <button onClick={handleLogin} className="hover:text-brand-accent transition-colors">Admin Login</button>
              ) : (
-               <button onClick={() => { console.log("Opening admin panel"); setShowAdminPanel(true); }} className="text-brand-accent hover:underline">Admin Panel</button>
+               <button onClick={() => setShowAdminPanel(true)} className="text-brand-accent hover:underline">Admin Panel</button>
              )}
           </div>
         </div>
@@ -1057,8 +1097,7 @@ export default function App() {
 
       {/* Admin Panel Drawer */}
       {showAdminPanel && (
-        <div className="fixed inset-y-0 right-0 w-[600px] bg-red-500 z-[100] border-l border-white/10 p-10 overflow-y-auto text-white">
-          <div>Hello Admin Panel</div>
+        <div className="fixed inset-y-0 right-0 w-[600px] bg-[#0c0c0c] z-[100] border-l border-white/10 p-10 overflow-y-auto text-white">
           <div className="flex justify-between items-center mb-12">
             <h2 className="text-3xl font-black uppercase tracking-tighter">Admin <span className="text-brand-accent">Panel</span></h2>
             <button onClick={() => setShowAdminPanel(false)} className="p-2 hover:bg-white/5 rounded-full"><X className="w-6 h-6" /></button>
@@ -1076,6 +1115,12 @@ export default function App() {
                  className={`flex-1 py-3 px-4 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${adminTab === "blog" ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20" : "text-gray-500 hover:text-white"}`}
                >
                   Blog
+               </button>
+               <button 
+                 onClick={() => setAdminTab("services")}
+                 className={`flex-1 py-3 px-4 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${adminTab === "services" ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20" : "text-gray-500 hover:text-white"}`}
+               >
+                  Služby
                </button>
             </div>
 
@@ -1175,7 +1220,7 @@ export default function App() {
                     </button>
                   </div>
                 </div>
-              ) : (
+              ) : adminTab === "blog" ? (
                 /* Admin Blog Tab */
                 <div className="p-8 bg-white/5 border border-white/5 rounded-2xl space-y-8">
                   <h3 className="text-xs uppercase tracking-[0.4em] font-bold text-brand-accent flex items-center gap-2">
@@ -1222,6 +1267,27 @@ export default function App() {
                     >
                       <ArrowRight className="w-4 h-4" /> Publikovat článek
                     </button>
+                  </div>
+                </div>
+              ) : (
+                /* Admin Services Tab */
+                <div className="p-8 bg-white/5 border border-white/5 rounded-2xl space-y-8">
+                  <h3 className="text-xs uppercase tracking-[0.4em] font-bold text-brand-accent flex items-center gap-2">
+                    <Plus className="w-4 h-4" /> Správa Služeb
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    {services.map((service) => (
+                      <div key={service.id} className="p-4 bg-black/20 rounded-xl border border-white/5">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-bold text-white">{service.title}</h4>
+                          <button className="p-2 hover:bg-white/5 rounded-full">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-400">{service.description}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
