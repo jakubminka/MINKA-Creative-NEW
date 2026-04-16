@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /portfolio/{allPaths=**} {
+      // Allow read access to anyone
+      allow read;
+      // Allow write access only to authenticated users
+      allow write: if request.auth != null;
+      // Allow delete only to authenticated users
+      allow delete: if request.auth != null;
+    }
+
+    // Default deny for other paths
+    match /{allPaths=**} {
+      allow read, write, delete: if false;
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { motion, useScroll, useTransform, AnimatePresence, useSpring, useMotionValue as motionValue } from "motion/react";
 import { Camera, Video, Monitor, ArrowRight, Instagram, Mail, ChevronRight, Menu, X, Sparkles, MessageSquare, Send, Loader2, LogIn, LogOut, Plus, Trash2, Edit2, LayoutDashboard, Calendar, FileText, User as UserIcon } from "lucide-react";
 import { useState, useRef, useEffect, ChangeEvent } from "react";
-import { auth, db, storage, googleProvider, OperationType, handleFirestoreError } from "./lib/firebase";
+import { uploadToCloudinary } from "./lib/cloudinary";
 import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -244,6 +244,13 @@ export default function App() {
     content: "",
     image: ""
   });
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    email: "",
+    projectType: "",
+    message: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const heroRef = useRef(null);
   
@@ -355,10 +362,7 @@ export default function App() {
 
     setIsUploading(true);
     try {
-      const sanitizedFileName = file.name.replace(/\s+/g, "_");
-      const storageRef = ref(storage, `portfolio/${Date.now()}_${sanitizedFileName}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      const downloadURL = await uploadToCloudinary(file);
       setNewProject({ ...newProject, image: downloadURL });
       alert("Obrázek byl nahrán. Nyní můžete projekt uložit.");
     } catch (error) {
@@ -375,6 +379,29 @@ export default function App() {
       await deleteDoc(doc(db, "projects", id));
     } catch (e) {
       handleFirestoreError(e, OperationType.DELETE, `projects/${id}`);
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name || !contactForm.email || !contactForm.message) {
+      alert("Vyplňte prosím všechna povinná pole.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(db, "contacts"), {
+        ...contactForm,
+        createdAt: serverTimestamp()
+      });
+      setContactForm({ name: "", email: "", projectType: "", message: "" });
+      alert("Vaše poptávka byla odeslána! Brzy vás budu kontaktovat.");
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, "contacts");
+      alert("Chyba při odesílání. Zkuste to prosím znovu.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -797,8 +824,69 @@ export default function App() {
                    <div className="space-y-16">
                       <div id="contact">
                          <h4 className="text-brand-accent text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Spojte se se mnou</h4>
+                         
+                         {/* Contact Form */}
+                         <form onSubmit={handleContactSubmit} className="space-y-6">
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <input 
+                               type="text" 
+                               placeholder="Vaše jméno *"
+                               value={contactForm.name}
+                               onChange={e => setContactForm({...contactForm, name: e.target.value})}
+                               className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm focus:border-brand-accent transition-colors"
+                               required
+                             />
+                             <input 
+                               type="email" 
+                               placeholder="Váš e-mail *"
+                               value={contactForm.email}
+                               onChange={e => setContactForm({...contactForm, email: e.target.value})}
+                               className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm focus:border-brand-accent transition-colors"
+                               required
+                             />
+                           </div>
+                           
+                           <select 
+                             value={contactForm.projectType}
+                             onChange={e => setContactForm({...contactForm, projectType: e.target.value})}
+                             className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm focus:border-brand-accent transition-colors"
+                           >
+                             <option value="">Vyberte typ projektu</option>
+                             <option value="photography">Fotografie</option>
+                             <option value="video">Video produkce</option>
+                             <option value="commercial">Komerční projekt</option>
+                             <option value="wedding">Svatební fotografie</option>
+                             <option value="other">Jiné</option>
+                           </select>
+                           
+                           <textarea 
+                             placeholder="Popište váš projekt nebo nápad... *"
+                             rows={4}
+                             value={contactForm.message}
+                             onChange={e => setContactForm({...contactForm, message: e.target.value})}
+                             className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm focus:border-brand-accent transition-colors resize-none"
+                             required
+                           />
+                           
+                           <button 
+                             type="submit"
+                             disabled={isSubmitting}
+                             className="w-full py-5 bg-brand-accent text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-xl hover:scale-[1.02] transition-all shadow-xl shadow-brand-accent/30 flex items-center justify-center gap-3 disabled:opacity-50"
+                           >
+                             {isSubmitting ? (
+                               <Loader2 className="w-4 h-4 animate-spin" />
+                             ) : (
+                               <Send className="w-4 h-4" />
+                             )}
+                             {isSubmitting ? "Odesílám..." : "Odeslat poptávku"}
+                           </button>
+                         </form>
+                      </div>
+
+                      <div>
+                         <h4 className="text-brand-accent text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Přímý kontakt</h4>
                          <div className="space-y-4">
-                            <a href="mailto:JakubMinka@gmail.com" className="text-3xl md:text-4xl font-light hover:text-brand-accent transition-colors block">JakubMinka@gmail.com</a>
+                            <a href="mailto:JakubMinka@gmail.com" className="text-2xl md:text-3xl font-light hover:text-brand-accent transition-colors block">JakubMinka@gmail.com</a>
                             <div className="flex gap-6 mt-8">
                                <a href="#" className="p-4 bg-white/5 rounded-full hover:bg-brand-accent hover:text-black transition-all"><Instagram className="w-6 h-6" /></a>
                                <a href="#" className="p-4 bg-white/5 rounded-full hover:bg-brand-accent hover:text-black transition-all"><Video className="w-6 h-6" /></a>
@@ -1059,35 +1147,15 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex flex-col items-center gap-12">
           <Logo />
           <div className="flex gap-12 text-[10px] font-black uppercase tracking-[0.4em] text-gray-500">
-            <a href="#work" className="hover:text-white transition-colors">Portfólio</a>
-            <a href="#services" className="hover:text-white transition-colors">Služby</a>
-            <a href="#contact" className="hover:text-white transition-colors">Kontakt</a>
+            <button onClick={() => setActiveTab("portfolio")} className="hover:text-white transition-colors">Portfólio</button>
+            <a href="#services" onClick={() => setActiveTab("studio")} className="hover:text-white transition-colors">Služby</a>
+            <button onClick={() => setActiveTab("info")} className="hover:text-white transition-colors">Kontakt</button>
             <button onClick={() => setActiveTab("blog")} className="hover:text-white transition-colors">Blog</button>
           </div>
           <div className="text-[9px] text-gray-700 font-mono tracking-widest uppercase mt-4">
             © 2026 MINKA creative • Všechna práva vyhrazena
           </div>
           
-          {/* Brand Assets Showcase */}
-          <div className="flex flex-col items-center gap-6 mt-16 p-8 border border-white/5 rounded-3xl bg-white/[0.02]">
-            <span className="text-[9px] text-gray-600 uppercase tracking-widest">Brand Visual Identity Overview</span>
-            <div className="flex flex-wrap items-center justify-center gap-12">
-              <div className="flex flex-col items-center gap-3">
-                <BrandIcon size="sm" />
-                <span className="text-[8px] text-gray-500 uppercase">Favicon / Small</span>
-              </div>
-              <div className="flex flex-col items-center gap-3">
-                <BrandIcon size="md" />
-                <span className="text-[8px] text-gray-500 uppercase">Social Profile / Medium</span>
-              </div>
-              <div className="flex flex-col items-center gap-3">
-                <div className="p-4 bg-brand-accent rounded-full border-4 border-white/10 shadow-2xl shadow-brand-accent/20">
-                  <span className="text-3xl font-black text-white">M</span>
-                </div>
-                <span className="text-[8px] text-gray-500 uppercase">App Icon / YouTube</span>
-              </div>
-            </div>
-          </div>
           <div className="mt-8 flex items-center gap-4 text-[9px] text-gray-800 uppercase tracking-widest">
              <span>Digital by Minka</span>
              <span className="w-1 h-1 rounded-full bg-gray-800" />

@@ -76,6 +76,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() && isValidProject(request.resource.data);
     }
 
+    match /contacts/{contactId} {
+      allow read: if isAdmin(); // Only admin can read contact forms
+      allow create: if true; // Anyone can submit contact form
+      allow update, delete: if isAdmin();
+    }
+
     match /users/{userId} {
       allow read, write: if isAdmin();
       // Allow self-registration only for the bootstrap email
