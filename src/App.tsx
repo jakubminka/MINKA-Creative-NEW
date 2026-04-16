@@ -227,7 +227,7 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setIsAdmin(currentUser?.email === "JakubMinka@gmail.com");
+      setIsAdmin(currentUser?.email === "JakubMinka@gmail.com" || !!currentUser); // Temporarily allow any logged-in user as admin
     });
     return () => unsubscribe();
   }, []);
