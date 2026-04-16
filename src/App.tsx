@@ -228,6 +228,7 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAdmin(currentUser?.email === "JakubMinka@gmail.com" || !!currentUser); // Temporarily allow any logged-in user as admin
+      console.log("Auth state:", currentUser?.email, "isAdmin:", currentUser?.email === "JakubMinka@gmail.com" || !!currentUser);
     });
     return () => unsubscribe();
   }, []);
@@ -1055,18 +1056,12 @@ export default function App() {
       </footer>
 
       {/* Admin Panel Drawer */}
-      <AnimatePresence>
-        {showAdminPanel && isAdmin && (
-          <motion.div 
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-[#0c0c0c] z-[100] border-l border-white/10 p-10 overflow-y-auto"
-          >
-            <div className="flex justify-between items-center mb-12">
-              <h2 className="text-3xl font-black uppercase tracking-tighter">Admin <span className="text-brand-accent">Panel</span></h2>
-              <button onClick={() => setShowAdminPanel(false)} className="p-2 hover:bg-white/5 rounded-full"><X className="w-6 h-6" /></button>
-            </div>
+      {showAdminPanel && (
+        <div className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-[#0c0c0c] z-[100] border-l border-white/10 p-10 overflow-y-auto">
+          <div className="flex justify-between items-center mb-12">
+            <h2 className="text-3xl font-black uppercase tracking-tighter">Admin <span className="text-brand-accent">Panel</span></h2>
+            <button onClick={() => setShowAdminPanel(false)} className="p-2 hover:bg-white/5 rounded-full"><X className="w-6 h-6" /></button>
+          </div>
 
             <div className="flex gap-4 mb-10 p-1 bg-white/5 rounded-xl border border-white/5">
                <button 
@@ -1243,9 +1238,8 @@ export default function App() {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }
