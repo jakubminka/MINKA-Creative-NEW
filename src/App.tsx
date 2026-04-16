@@ -277,13 +277,22 @@ export default function App() {
 
   useEffect(() => {
     if (db) { // Check if db is initialized
-      const q = query(collection(db, "projects"), orderBy("createdAt", "desc"));
+      // Odstraníme orderBy z query, aby projekty nemizely při uložení
+      const q = query(collection(db, "projects"));
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const items = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as PortfolioItem[];
-        setPortfolioItems(items);
+        
+        // Seřadíme projekty na straně klienta
+        const sortedItems = [...items].sort((a: any, b: any) => {
+          const timeA = a.createdAt?.seconds || Date.now();
+          const timeB = b.createdAt?.seconds || Date.now();
+          return timeB - timeA;
+        });
+        
+        setPortfolioItems(sortedItems);
         setIsLoading(false);
       }, (error) => {
         handleFirestoreError(error, OperationType.LIST, "projects");

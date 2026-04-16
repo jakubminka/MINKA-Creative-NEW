@@ -13,13 +13,18 @@ const firebaseConfig = {
 
 let app, auth, db;
 
-const isConfigValid = firebaseConfig.apiKey && 
-                     firebaseConfig.apiKey !== "undefined" && 
-                     firebaseConfig.apiKey.length > 0;
+// Vyčištění klíčů od případných uvozovek, které tam lidé často dávají v .env
+const cleanKey = (key: string | undefined) => key?.replace(/['"]/g, '');
+
+const isConfigValid = cleanKey(firebaseConfig.apiKey) && 
+                     cleanKey(firebaseConfig.apiKey) !== "undefined";
 
 if (isConfigValid) {
   try {
-    app = initializeApp(firebaseConfig);
+    app = initializeApp({
+      ...firebaseConfig,
+      apiKey: cleanKey(firebaseConfig.apiKey)
+    });
     auth = getAuth(app);
     db = getFirestore(app);
   } catch (error) {
