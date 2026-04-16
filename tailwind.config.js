@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        'brand-accent': '#FFD700', 
+        'brand-accent': '#0055FF', 
       },
       animation: {
         'marquee': 'marquee 25s linear infinite',

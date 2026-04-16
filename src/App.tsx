@@ -717,24 +717,17 @@ export default function App() {
                    <div className="h-px flex-1 bg-white/10" />
                 </div>
                 <div className="masonry-grid">
-                  {[
-                    "https://picsum.photos/seed/minka1/800/1200",
-                    "https://picsum.photos/seed/minka2/1200/800",
-                    "https://picsum.photos/seed/minka3/800/800",
-                    "https://picsum.photos/seed/minka4/800/1000",
-                    "https://picsum.photos/seed/minka5/1000/800",
-                    "https://picsum.photos/seed/minka6/800/1200"
-                  ].map((img, i) => (
+                  {(portfolioItems.length > 0 ? portfolioItems.slice(0, 6) : defaultServices.map(s => ({ image: s.bgImage, title: s.title }))).map((item: any, i) => (
                     <motion.div 
                       key={i}
                       initial={{ opacity: 0, y: 30 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.1 }}
                       viewport={{ once: true }}
-                      onClick={() => setLightboxMedia({ url: img, type: "image" })}
+                      onClick={() => setLightboxMedia({ url: item.image, type: "image", title: item.title })}
                       className="masonry-item group cursor-none"
                     >
-                      <img src={img} className="w-full grayscale group-hover:grayscale-0 transition-all duration-1000" alt="Top Selection" />
+                      <img src={item.image} className="w-full grayscale group-hover:grayscale-0 transition-all duration-1000" alt={item.title || "Top Selection"} />
                     </motion.div>
                   ))}
                 </div>
@@ -900,7 +893,7 @@ export default function App() {
                     <div className="col-span-full py-40 flex justify-center items-center gap-4 text-xs uppercase tracking-[0.5em] font-bold">
                        <Loader2 className="w-6 h-6 animate-spin text-brand-accent" /> Načítám umění...
                     </div>
-                  ) : portfolioItems.length > 0 ? portfolioItems.filter(i => activeCategory === "Vše" || i.category === activeCategory).map((item, idx) => (
+                  ) : filteredItems.length > 0 ? filteredItems.map((item, idx) => (
                     <motion.div 
                       key={item.id}
                       layout
@@ -922,7 +915,7 @@ export default function App() {
                           <p className="text-[10px] text-gray-400 mt-2 line-clamp-2">{item.description}</p>
                        </div>
                     </motion.div>
-                  )) : (
+                  )) : ( // If filteredItems.length is 0
                     <div className="col-span-full py-40 text-center opacity-30 uppercase tracking-[1em] text-sm">Prázdná plátna.</div>
                   )}
                 </AnimatePresence>
