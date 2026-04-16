@@ -1049,7 +1049,7 @@ export default function App() {
              {!user ? (
                <button onClick={handleLogin} className="hover:text-brand-accent transition-colors">Admin Login</button>
              ) : (
-               <button onClick={() => setShowAdminPanel(true)} className="text-brand-accent hover:underline">Admin Panel</button>
+               <button onClick={() => { console.log("Opening admin panel"); setShowAdminPanel(true); }} className="text-brand-accent hover:underline">Admin Panel</button>
              )}
           </div>
         </div>
@@ -1057,7 +1057,8 @@ export default function App() {
 
       {/* Admin Panel Drawer */}
       {showAdminPanel && (
-        <div className="fixed inset-y-0 right-0 w-full md:w-[600px] bg-[#0c0c0c] z-[100] border-l border-white/10 p-10 overflow-y-auto">
+        <div className="fixed inset-y-0 right-0 w-[600px] bg-red-500 z-[100] border-l border-white/10 p-10 overflow-y-auto text-white">
+          <div>Hello Admin Panel</div>
           <div className="flex justify-between items-center mb-12">
             <h2 className="text-3xl font-black uppercase tracking-tighter">Admin <span className="text-brand-accent">Panel</span></h2>
             <button onClick={() => setShowAdminPanel(false)} className="p-2 hover:bg-white/5 rounded-full"><X className="w-6 h-6" /></button>
