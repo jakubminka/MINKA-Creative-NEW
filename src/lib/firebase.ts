@@ -13,12 +13,20 @@ const firebaseConfig = {
 
 let app, auth, db;
 
-try {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-} catch (error) {
-  console.error("Firebase failed to initialize. Check your .env file.", error);
+const isConfigValid = firebaseConfig.apiKey && 
+                     firebaseConfig.apiKey !== "undefined" && 
+                     firebaseConfig.apiKey.length > 0;
+
+if (isConfigValid) {
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (error) {
+    console.error("Firebase failed to initialize check config:", error);
+  }
+} else {
+  console.error("Firebase API Key is missing in .env file!");
 }
 
 export { auth, db };
