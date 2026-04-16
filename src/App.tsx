@@ -231,6 +231,9 @@ export default function App() {
   const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: "image" | "video"; title?: string; description?: string } | null>(null);
   const [aiCritique, setAiCritique] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const [firebaseInitStatus, setFirebaseInitStatus] = useState("Initializing...");
+  const [geminiInitStatus, setGeminiInitStatus] = useState("Initializing...");
   
   // Auth & Admin State
   const [user, setUser] = useState<User | null>(null);
@@ -326,6 +329,21 @@ export default function App() {
       return () => unsubscribePosts();
     }
   }, []);
+
+  useEffect(() => {
+    // This will run once, and auth/db will be the result of the firebase.ts initialization
+    if (auth && db) {
+      setFirebaseInitStatus("Firebase initialized successfully.");
+    } else {
+      setFirebaseInitStatus("Firebase FAILED to initialize. Check .env and console for errors.");
+    }
+
+    if (import.meta.env.VITE_GEMINI_API_KEY) {
+      setGeminiInitStatus("Gemini API Key loaded.");
+    } else {
+      setGeminiInitStatus("Gemini API Key MISSING from .env!");
+    }
+  }, []); // Run once on mount
 
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
@@ -463,6 +481,41 @@ export default function App() {
 
   return (
     <div className="min-h-screen selection:bg-brand-accent selection:text-black bg-black text-white cursor-none">
+      {/* Temporary Debugging Overlay - REMOVE THIS ONCE EVERYTHING IS WORKING! */}
+      {(!auth && !db && !import.meta.env.VITE_FIREBASE_API_KEY) || !import.meta.env.VITE_GEMINI_API_KEY || !import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || !import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ? (
+        <div className="fixed inset-0 bg-red-900/90 text-white p-8 z-[9999] flex flex-col items-center justify-center text-center">
+          <h1 className="text-4xl font-bold mb-4">Problém s konfigurací API klíčů! 🚨</h1>
+          <p className="text-lg mb-2">Web nemůže běžet, protože chybí nebo jsou neplatné API klíče.</p>
+          <p className="text-lg mb-2">**Zkontrolujte konzoli prohlížeče (F12) pro detailní chyby!**</p>
+          <ul className="text-left mt-8 text-sm font-mono bg-red-800/50 p-6 rounded-lg border border-red-700">
+            <li><strong>Firebase Init Status:</strong> {firebaseInitStatus}</li>
+            <li><strong>Gemini Init Status:</strong> {geminiInitStatus}</li>
+            <li className="mt-4">--- Proměnné z .env ---</li>
+            <li><strong>VITE_FIREBASE_API_KEY:</strong> {import.meta.env.VITE_FIREBASE_API_KEY ? '✅ Loaded' : '❌ MISSING / Undefined'}</li>
+            <li><strong>VITE_FIREBASE_AUTH_DOMAIN:</strong> {import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ? '✅ Loaded' : '❌ MISSING / Undefined'}</li>
+            <li><strong>VITE_FIREBASE_PROJECT_ID:</strong> {import.meta.env.VITE_FIREBASE_PROJECT_ID ? '✅ Loaded' : '❌ MISSING / Undefined'}</li>
+            <li><strong>VITE_FIREBASE_STORAGE_BUCKET:</strong> {import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ? '✅ Loaded' : '❌ MISSING / Undefined'}</li>
+            <li><strong>VITE_FIREBASE_MESSAGING_SENDER_ID:</strong> {import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ? '✅ Loaded' : '❌ MISSING / Undefined'}</li>
+            <li><strong>VITE_FIREBASE_APP_ID:</strong> {import.meta.env.VITE_FIREBASE_APP_ID ? '✅ Loaded' : '❌ MISSING / Undefined'}</li>
+            <li className="mt-4">--- Cloudinary ---</li>
+            <li><strong>VITE_CLOUDINARY_CLOUD_NAME:</strong> {import.meta.env.VITE_CLOUDINARY_CLOUD_NAME ? '✅ Loaded' : '❌ MISSING / Undefined'}</li>
+            <li><strong>VITE_CLOUDINARY_UPLOAD_PRESET:</strong> {import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ? '✅ Loaded' : '❌ MISSING / Undefined'}</li>
+            <li className="mt-4">--- Gemini AI ---</li>
+            <li><strong>VITE_GEMINI_API_KEY:</strong> {import.meta.env.VITE_GEMINI_API_KEY ? '✅ Loaded' : '❌ MISSING / Undefined'}</li>
+          </ul>
+          <p className="mt-8 text-yellow-300 font-bold text-lg">
+            KROKY PRO OPRAVU:<br/>
+            1. Otevřete soubor `.env` v kořenovém adresáři projektu.<br/>
+            2. Důkladně zkontrolujte, že VŠECHNY proměnné (`VITE_FIREBASE_API_KEY`, `VITE_CLOUDINARY_CLOUD_NAME`, `VITE_CLOUDINARY_UPLOAD_PRESET`, `VITE_GEMINI_API_KEY` atd.) jsou správně vyplněné a nemají uvozovky.<br/>
+            3. Pokud jste `.env` soubor upravili, **Vypněte (`Ctrl+C`) a ZNOVU SPUŤTE (`npm run dev`) vývojový server!**<br/>
+            4. Znovu zkontrolujte tuto hlášku a konzoli prohlížeče.
+          </p>
+          <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-200 font-bold uppercase tracking-wider">
+            Zkusit znovu po opravě
+          </button>
+        </div>
+      ) : (
+        <>
       <CustomCursor />
       
       {/* Lightbox */}
@@ -1443,6 +1496,8 @@ export default function App() {
             </div>
           </div>
         )}
+        </>
+      )}
     </div>
   );
 }
