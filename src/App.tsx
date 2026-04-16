@@ -5,6 +5,7 @@ import { uploadToCloudinary } from "./lib/cloudinary";
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from "./lib/firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { analyzeStyle } from "./lib/gemini";
 
 // Types
 interface PortfolioItem {
@@ -131,6 +132,13 @@ const BrandIcon = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
   );
 };
 
+const getEmbedUrl = (url: string) => {
+  if (url.includes('youtube.com/watch?v=')) return url.replace('watch?v=', 'embed/');
+  if (url.includes('youtu.be/')) return url.replace('youtu.be/', 'www.youtube.com/embed/').split('?')[0];
+  if (url.includes('vimeo.com/')) return url.replace('vimeo.com/', 'player.vimeo.com/video/');
+  return url;
+};
+
 const CustomCursor = () => {
   const mouseX = motionValue(0);
   const mouseY = motionValue(0);
@@ -220,7 +228,9 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<"Vše" | "Fotografie" | "Video">("Vše");
   const [activeSubcategory, setActiveSubcategory] = useState<string>("Vše");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: "image" | "video" } | null>(null);
+  const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: "image" | "video"; title?: string; description?: string } | null>(null);
+  const [aiCritique, setAiCritique] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   // Auth & Admin State
   const [user, setUser] = useState<User | null>(null);
@@ -257,7 +267,7 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setIsAdmin(currentUser?.email === "JakubMinka@gmail.com" || !!currentUser); // Temporarily allow any logged-in user as admin
+      setIsAdmin(currentUser?.email === "JakubMinka@gmail.com");
     });
     return () => unsubscribe();
   }, []);
@@ -318,6 +328,18 @@ export default function App() {
     const subMatch = activeSubcategory === "Vše" || item.subcategory === activeSubcategory;
     return catMatch && subMatch;
   });
+
+  const handleAiAnalyze = async (title: string, desc: string) => {
+    setIsAnalyzing(true);
+    try {
+      const critique = await analyzeStyle(title, desc);
+      setAiCritique(critique);
+    } catch (e) {
+      setAiCritique("Analýza momentálně není k dispozici.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -437,16 +459,17 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setLightboxMedia(null)}
+            onClick={() => { setLightboxMedia(null); setAiCritique(null); }}
             className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 cursor-zoom-out"
           >
             <button className="absolute top-10 right-10 text-white hover:text-brand-accent z-[210]">
               <X className="w-10 h-10" />
             </button>
+            
             <motion.div 
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
-              className="max-w-7xl max-h-[90vh] w-full flex items-center justify-center"
+              className="max-w-7xl max-h-[90vh] w-full flex flex-col items-center justify-center gap-6"
               onClick={e => e.stopPropagation()}
             >
               {lightboxMedia.type === "image" ? (
@@ -454,11 +477,33 @@ export default function App() {
               ) : (
                 <div className="w-full aspect-video bg-black shadow-2xl">
                    <iframe 
-                    src={lightboxMedia.url.replace("watch?v=", "embed/")} 
+                    src={getEmbedUrl(lightboxMedia.url)} 
                     className="w-full h-full"
                     allowFullScreen
                     allow="autoplay; encrypted-media"
                    />
+                </div>
+              )}
+
+              {lightboxMedia.title && (
+                <div className="max-w-2xl text-center bg-black/60 p-6 rounded-2xl backdrop-blur-md border border-white/10">
+                  <h3 className="text-xl font-bold text-brand-accent uppercase tracking-widest mb-2">{lightboxMedia.title}</h3>
+                  <p className="text-sm text-gray-400 mb-4">{lightboxMedia.description}</p>
+                  
+                  {!aiCritique ? (
+                    <button 
+                      onClick={() => handleAiAnalyze(lightboxMedia.title!, lightboxMedia.description || "")}
+                      disabled={isAnalyzing}
+                      className="text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-2 mx-auto hover:text-brand-accent transition-colors"
+                    >
+                      {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      Generovat AI analýzu stylu
+                    </button>
+                  ) : (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs italic text-brand-accent/80 border-t border-white/10 pt-4">
+                      "{aiCritique}"
+                    </motion.div>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -796,7 +841,12 @@ export default function App() {
                       initial={{ opacity: 0, y: 40 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      onClick={() => setLightboxMedia({ url: item.image, type: "image" })}
+                      onClick={() => setLightboxMedia({ 
+                        url: item.videoUrl && item.category === "Video" ? item.videoUrl : item.image, 
+                        type: item.videoUrl && item.category === "Video" ? "video" : "image",
+                        title: item.title,
+                        description: item.description
+                      })}
                       className="masonry-item group cursor-zoom-in relative"
                     >
                        <img src={item.image} alt={item.title} className="w-full grayscale group-hover:grayscale-0 transition-all duration-1000" />
