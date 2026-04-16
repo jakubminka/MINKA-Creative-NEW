@@ -2,9 +2,9 @@ import { motion, useScroll, useTransform, AnimatePresence, useSpring, useMotionV
 import { Camera, Video, Monitor, ArrowRight, Instagram, Mail, ChevronRight, Menu, X, Sparkles, MessageSquare, Send, Loader2, LogIn, LogOut, Plus, Trash2, Edit2, LayoutDashboard, Calendar, FileText, User as UserIcon } from "lucide-react";
 import { useState, useRef, useEffect, ChangeEvent } from "react";
 import { uploadToCloudinary } from "./lib/cloudinary";
+import { auth, db, googleProvider, handleFirestoreError, OperationType } from "./lib/firebase";
 import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 // Types
 interface PortfolioItem {
