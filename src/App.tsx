@@ -314,8 +314,8 @@ export default function App() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   const filteredItems = portfolioItems.filter(item => {
-    const catMatch = activeCategory === "All" || item.category === activeCategory;
-    const subMatch = activeSubcategory === "All" || item.subcategory === activeSubcategory;
+    const catMatch = activeCategory === "Vše" || item.category === activeCategory;
+    const subMatch = activeSubcategory === "Vše" || item.subcategory === activeSubcategory;
     return catMatch && subMatch;
   });
 
